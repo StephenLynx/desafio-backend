@@ -1,0 +1,20 @@
+All endpoints return an object with at least 2 keys: status and error. Status will be returned with either the value "ok" for a sucessfull operation or "error" for a failed operation. 
+In case of an error, the key "error will contain a string describing the error. Any endpoint that might returns more keys will be describes in their own session.
+
+------------------------------------------------------------------------------------------
+
+PAG_ID::01
+
+Verb: PUT
+Name: account
+
+Description: creates a new account.
+
+Parameters:
+    email: account e-mail.
+    password: account password.
+    identifier: either the cpf or cnpj of the new account.
+    retailer(Boolean): send as true for a retailer account using cnpj or a regular user account using a cpf.
+    name: full name of the user.
+
+------------------------------------------------------------------------------------------
