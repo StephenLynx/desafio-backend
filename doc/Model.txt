@@ -9,4 +9,15 @@ Fields:
     identifier: either the cpf or cnpj of the new account.
     retailer(Boolean): true for a retailer account using cnpj or a regular user account using a cpf.
     name: full name of the user.
-    funds(Number): how much money the account holds.
+
+------------------------------------------------------------------------------------------
+
+COL::02
+Name: ledger
+Description: holds all performed transactions.
+
+Fields:
+    target: id of the account that had this transaction performed on.
+    value(Number): value of the transaction.
+
+------------------------------------------------------------------------------------------

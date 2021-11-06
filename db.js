@@ -9,9 +9,10 @@ var indexesSet;
 var cachedDb;
 var cachedClient;
 
-var maxIndexesSet = 1;
+var maxIndexesSet = 2;
 
 var cachedUsers;
+var cachedLedger;
 
 var loading;
 
@@ -52,20 +53,45 @@ function initUsers(callback) {
 
 }
 
+function initLedger(callback) {
+
+  cachedLedger.createIndexes([ {
+    key : {
+      target : 1
+    },
+  } ], function setIndex(error, index) {
+    if (error) {
+      if (loading) {
+        loading = false;
+
+        callback(error);
+      }
+    } else {
+      indexSet(callback);
+    }
+  });
+
+}
+
 exports.client = function() {
   return cachedClient;
 };
 
 exports.users = function() {
-
   return cachedUsers;
+};
+
+exports.ledger = function() {
+  return cachedLedger;
 };
 
 function initCollections(callback) {
 
   cachedUsers = cachedDb.collection('users');
+  cachedLedger = cachedDb.collection('ledger');
 
   initUsers(callback);
+  initLedger(callback);
 
 }
 

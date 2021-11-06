@@ -7,6 +7,7 @@ var ObjectID = mongo.ObjectId;
 var db = require('./db');
 var miscOps = require('./miscOps');
 var users = db.users();
+var ledger = db.ledger();
 
 var iterations = 16384;
 var keyLength = 256;
@@ -265,57 +266,38 @@ exports.startSession = function(user, res) {
 // } Section 2: Login
 
 // Section 3: Transfer {
-
-exports.transfer = async function(req, res) {
+exports.transfer = function(req, res) {
 
   var parameters = miscOps.fetchRequestParameters(req, transferParameters);
 
-  try {
-    var sender = await exports.getUserAccountToTransfer(parameters);
-  } catch (error) {
-    return miscOps.returnError(res, error);
-  }
+  exports.getUserAccountToTransfer(parameters, function(error, user) {
 
-  miscOps.returnResponse(res, {
-    status : 'ok'
-  });
+    if (error) {
+      return miscOps.returnError(res, error);
+    }
 
-  return;
+    exports.getUserAccountToReceive(parameters, function(error, receiver) {
 
-  var session = db.client().startSession();
-
-  // Step 3: Use withTransaction to start a transaction, execute the callback,
-  // and commit (or abort on error)
-  // Note: The callback for withTransaction MUST be async and/or return a
-  // Promise.
-  try {
-
-    session.withTransaction(function() {
+      if (error) {
+        miscOps.returnError(res, error);
+      } else {
+        exports.performTransfer(user, receiver, parameters.value, res);
+      }
 
     });
-    // await session.withTransaction( /*async*/ function() {
 
-    // Important:: You must pass the session to the operations
-    // await coll1.insertOne({ abc: 1 }, { session });
-    // await coll2.insertOne({ xyz: 999 }, { session });
-    // });
-  } catch (error) {
-    miscOps.returnError(res, error);
-  } finally {
-    // await session.endSession();
-
-  }
+  });
 
 };
 
-exports.getUserAccountToTransfer = async function(parameters) {
+exports.getUserAccountToTransfer = function(parameters, callback) {
 
   if (!parameters.session) {
-    throw 'Falha de login.';
+    callback('Falha de login.');
   } else if (!parameters.destination) {
-    throw 'Conta de destino não encontrada.';
-  } else if (!parameters.value) {
-    throw 'Valor inválido.';
+    callback('Conta de destino não encontrada.');
+  } else if (!parameters.value || parameters.value < 0) {
+    callback('Valor inválido.');
   }
 
   var userId;
@@ -323,26 +305,132 @@ exports.getUserAccountToTransfer = async function(parameters) {
   try {
     userId = new ObjectID(parameters.id);
   } catch (error) {
-    throw 'Falha de login.';
+    callback('Falha de login.');
   }
 
-  var user = await users.findOne({
+  users.findOne({
     _id : userId,
     session : parameters.session
+  }, function(error, user) {
+
+    if (error) {
+      callback(error);
+    } else if (!user) {
+      callback('Falha de login.');
+    } else if (user.retailer) {
+      callback('Lojistas não podem transferir fundos.');
+    } else if (parameters.destination === user.identifier) {
+      callback('Você não pode transferir dinheiro para sí próprio.');
+    } else {
+      callback(null, user);
+    }
+
   });
-
-  if (!user) {
-    throw 'Falha de login.';
-  } else if (user.retailer) {
-    throw 'Lojistas não podem transferir fundos.';
-  } else if (!user.funds || user.funds < parameters.value) {
-    throw 'Saldo insuficiente.';
-  } else if (parameters.destination === user.identifier) {
-    throw 'Você não pode transferir dinheiro para sí próprio.';
-  }
-
-  return user;
 
 };
 
+exports.getUserAccountToReceive = function(parameters, callback) {
+
+  users.findOne({
+    identifier : parameters.destination
+  }, function(error, receiver) {
+
+    if (error) {
+      callback(error);
+    } else if (!receiver) {
+      callback('Conta de destino não encontrada.');
+    } else {
+      callback(null, receiver);
+    }
+
+  });
+
+};
+
+exports.performTransfer = function(user, receiver, value, res) {
+
+  ledger.bulkWrite([ {
+    insertOne : {
+      document : {
+        target : user._id,
+        value : -value
+      }
+    }
+  }, {
+    insertOne : {
+      document : {
+        target : receiver._id,
+        value : value
+      }
+    }
+  } ], function(error, result) {
+
+    if (error) {
+      miscOps.returnError(res, error);
+    } else {
+      exports.checkForIntegrity(user, result.insertedIds, res);
+    }
+
+  });
+
+};
+
+exports.checkForIntegrity = function(user, insertedIds, res) {
+
+  ledger.aggregate([ {
+    $match : {
+      target : user._id
+    }
+  }, {
+    $group : {
+      _id : 0,
+      balance : {
+        $sum : '$value'
+      }
+    }
+  } ]).toArray(function(error, results) {
+
+    if (error) {
+      miscOps.returnError(res, error);
+    } else if (!results.length || results[0].balance < 0) {
+      exports.revertTransaction(insertedIds, res);
+    } else {
+      miscOps.returnResponse(res, {
+        status : 'ok'
+      });
+    }
+
+  });
+
+};
+
+exports.revertTransaction = function(insertedIds, res) {
+
+  var convertedIds = [];
+
+  for ( var key in insertedIds) {
+    convertedIds.push(insertedIds[key]);
+  }
+
+  ledger.deleteMany({
+    _id : {
+      $in : convertedIds
+    }
+  }, function(error) {
+
+    if (error) {
+      // TODO escalate the issue.
+      console.log('ERROR: failed to rollback transaction with ids '
+          + JSON.stringify(convertedIds, null, 2));
+      console.log(error);
+
+      miscOps.returnError(res, error);
+
+    } else {
+      miscOps.returnError(res, 'Saldo insuficiente.');
+    }
+
+  });
+
+};
 // } Section 3: Transfer
