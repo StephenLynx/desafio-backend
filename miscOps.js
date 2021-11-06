@@ -8,6 +8,7 @@ var htmlReplaceTable = {
   '\u202E' : ''
 };
 
+// HTML sanitization copied from my other project, LynxChan
 var htmlReplaceRegex = new RegExp(/[\u202E<>'"]/g);
 
 exports.cleanHTML = function(string) {
@@ -63,9 +64,7 @@ exports.fetchRequestParameters = function(req, parameters) {
 
     var entry = parameters[i];
 
-    console.log(entry.field);
     if (!sentParameters[entry.field]) {
-      console.log('missing');
       continue;
     }
 
@@ -108,5 +107,21 @@ exports.fetchRequestParameters = function(req, parameters) {
   }
 
   return builtParameters;
+
+};
+
+exports.returnError = function(res, error) {
+
+  exports.returnResponse(res, {
+    status : 'error',
+    error : error
+  });
+
+};
+
+exports.returnResponse = function(res, data) {
+
+  res.setHeader('Content-Type', 'application/json');
+  res.send(JSON.stringify(data));
 
 };

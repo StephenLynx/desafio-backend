@@ -51,6 +51,7 @@ function initUsers(callback) {
 }
 
 exports.users = function() {
+
   return cachedUsers;
 };
 
@@ -59,7 +60,7 @@ function initCollections(callback) {
   cachedUsers = cachedDb.collection('users');
 
   initUsers(callback);
-  
+
 }
 
 function connect(connectString, dbToUse, callback, attempts) {

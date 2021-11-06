@@ -1,0 +1,11 @@
+COL::01
+Name: users
+Description: holds the user accounts.
+
+Fields:
+    email: account e-mail.
+    passwordSalt: salt used for the password.
+    password: hashed and salted account password.
+    identifier: either the cpf or cnpj of the new account.
+    retailer(Boolean): true for a retailer account using cnpj or a regular user account using a cpf.
+    name: full name of the user.
