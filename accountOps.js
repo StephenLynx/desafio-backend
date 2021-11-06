@@ -1,17 +1,17 @@
 'use strict';
 
 var crypto = require('crypto');
+var https = require('https');
 var mongo = require('mongodb');
-var ObjectID = mongo.ObjectId;
-
 var db = require('./db');
 var miscOps = require('./miscOps');
 var users = db.users();
 var ledger = db.ledger();
-
+var ObjectID = mongo.ObjectId;
 var iterations = 16384;
 var keyLength = 256;
 var hashDigest = 'sha512';
+var confirmationAddress = 'https://run.mocky.io/v3/1f1b822a-3d6f-4b95-9a01-b3e6191e436b';
 
 var creationParameters = [ {
   field : 'name',
@@ -349,18 +349,26 @@ exports.getUserAccountToReceive = function(parameters, callback) {
 
 exports.performTransfer = function(user, receiver, value, res) {
 
+  var time = new Date();
+
   ledger.bulkWrite([ {
     insertOne : {
       document : {
         target : user._id,
-        value : -value
+        value : -value,
+        confirmed : false,
+        date : time,
+        pair : receiver._id
       }
     }
   }, {
     insertOne : {
       document : {
         target : receiver._id,
-        value : value
+        value : value,
+        confirmed : false,
+        date : time,
+        pair : user._id
       }
     }
   } ], function(error, result) {
@@ -368,7 +376,14 @@ exports.performTransfer = function(user, receiver, value, res) {
     if (error) {
       miscOps.returnError(res, error);
     } else {
-      exports.checkForIntegrity(user, result.insertedIds, res);
+
+      var convertedIds = [];
+
+      for ( var key in result.insertedIds) {
+        convertedIds.push(result.insertedIds[key]);
+      }
+
+      exports.checkForIntegrity(user, convertedIds, res);
     }
 
   });
@@ -395,26 +410,18 @@ exports.checkForIntegrity = function(user, insertedIds, res) {
     } else if (!results.length || results[0].balance < 0) {
       exports.revertTransaction(insertedIds, res);
     } else {
-      miscOps.returnResponse(res, {
-        status : 'ok'
-      });
+      exports.confirmTransaction(insertedIds, res);
     }
 
   });
 
 };
 
-exports.revertTransaction = function(insertedIds, res) {
-
-  var convertedIds = [];
-
-  for ( var key in insertedIds) {
-    convertedIds.push(insertedIds[key]);
-  }
+exports.revertTransaction = function(insertedIds, res, baseError) {
 
   ledger.deleteMany({
     _id : {
-      $in : convertedIds
+      $in : insertedIds
     }
   }, function(error) {
 
@@ -427,10 +434,73 @@ exports.revertTransaction = function(insertedIds, res) {
       miscOps.returnError(res, error);
 
     } else {
-      miscOps.returnError(res, 'Saldo insuficiente.');
+      miscOps.returnError(res, baseError || 'Saldo insuficiente.');
     }
 
   });
 
 };
+
+exports.confirmTransaction = function(insertedIds, res) {
+
+  var data = '';
+
+  var req = https.request(confirmationAddress, function gotData(localRes) {
+
+    // style exception, too simple
+    localRes.on('data', function(chunk) {
+      data += chunk;
+    });
+
+    localRes.on('end', function() {
+      exports.parseAuthorizationCheck(data, insertedIds, res);
+    });
+    // style exception, too simple
+
+  });
+
+  req.once('error', function(error) {
+    exports.revertTransaction(insertedIds, res, error);
+  });
+
+  req.end();
+
+};
+
+exports.parseAuthorizationCheck = function(data, insertedIds, res) {
+
+  try {
+
+    data = JSON.parse(data);
+
+    if (data.status !== 'Autorizado') {
+      return exports.revertTransaction(insertedIds, res, 'Transação negada.');
+    }
+
+    ledger.updateMany({
+      _id : {
+        $in : insertedIds
+      }
+    }, {
+      $set : {
+        confirmed : true
+      }
+    }, function(error) {
+
+      if (error) {
+        exports.revertTransaction(insertedIds, res, error);
+      } else {
+        miscOps.returnResponse(res, {
+          status : 'ok'
+        });
+      }
+
+    });
+
+  } catch (error) {
+    exports.revertTransaction(insertedIds, res, error);
+  }
+
+};
+
 // } Section 3: Transfer

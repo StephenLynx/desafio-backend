@@ -18,10 +18,6 @@ db.init(function(error) {
     return console.log(error);
   }
 
-  app.get('/', function(req, res) {
-    res.send('Hello World!');
-  });
-
   app.put('/account', accountOps.createAccount);
   app.post('/login', accountOps.login);
   app.post('/transfer', accountOps.transfer);

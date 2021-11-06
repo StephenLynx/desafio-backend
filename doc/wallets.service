@@ -1,0 +1,12 @@
+[Unit]
+Description=Wallets
+After=mongod.service
+
+[Service]
+ExecStart=/usr/bin/wallets
+User=node
+StandardOutput=syslog
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target

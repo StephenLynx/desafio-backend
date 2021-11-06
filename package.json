@@ -2,6 +2,9 @@
   "name": "desafio-backend",
   "version": "1.0.0",
   "main": "kernel.js",
+  "scripts": {
+    "start": "kernel.js"
+    },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/StephenLynx/desafio-backend.git"

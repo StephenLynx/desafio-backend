@@ -1,0 +1,4 @@
+1: run npm install on the root directory.
+2: have a mongodb instance running and reachable under the host "mongodb".
+3: execute kernel.js. It will listen on port 80, so either use root to run or use the command "sudo setcap 'cap_net_bind_service=+ep' `which node`" to be able to bind to it.
+4: if you wish to run it as a service, run the "installService.sh" script as root, the service will be installed under the name "wallets" and will run under the user "node".

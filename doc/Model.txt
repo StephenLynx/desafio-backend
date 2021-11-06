@@ -17,6 +17,9 @@ Name: ledger
 Description: holds all performed transactions.
 
 Fields:
+    date(Date): time of the transaction.
+    pair: if this transaction happened as a transfer between two users, this field holds the id of the other user that participated in this transaction.
+    confirmed(Boolean): set to false on transactions pending confirmation.
     target: id of the account that had this transaction performed on.
     value(Number): value of the transaction.
 
