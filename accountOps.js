@@ -332,7 +332,7 @@ exports.getUserAccountToTransfer = function(parameters, callback) {
 exports.getUserAccountToReceive = function(parameters, callback) {
 
   users.findOne({
-    identifier : parameters.destination
+    identifier : parameters.destination.replace(/[^0-9]/g, '')
   }, function(error, receiver) {
 
     if (error) {
