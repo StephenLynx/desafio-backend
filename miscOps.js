@@ -97,6 +97,24 @@ exports.fetchRequestParameters = function(req, parameters) {
 
       break;
 
+    case 'money':
+
+      if (typeof sentParameters[entry.field] !== 'number') {
+        continue;
+      }
+
+      if ((sentParameters[entry.field] % 1) !== 0) {
+
+        if (sentParameters[entry.field].toString().split('.')[1].length > 2) {
+          continue;
+        }
+
+      }
+      
+      builtParameters[entry.field] = sentParameters[entry.field];
+
+      break;
+
     }
 
   }

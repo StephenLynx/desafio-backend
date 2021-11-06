@@ -1,6 +1,8 @@
 'use strict';
 
 var crypto = require('crypto');
+var mongo = require('mongodb');
+var ObjectID = mongo.ObjectId;
 
 var db = require('./db');
 var miscOps = require('./miscOps');
@@ -32,6 +34,20 @@ var loginParameters = [ {
   type : 'string'
 }, {
   field : 'password',
+  type : 'string'
+} ];
+
+var transferParameters = [ {
+  field : 'id',
+  type : 'string'
+}, {
+  field : 'destination',
+  type : 'string'
+}, {
+  field : 'value',
+  type : 'money'
+}, {
+  field : 'session',
   type : 'string'
 } ];
 
@@ -247,3 +263,86 @@ exports.startSession = function(user, res) {
 
 };
 // } Section 2: Login
+
+// Section 3: Transfer {
+
+exports.transfer = async function(req, res) {
+
+  var parameters = miscOps.fetchRequestParameters(req, transferParameters);
+
+  try {
+    var sender = await exports.getUserAccountToTransfer(parameters);
+  } catch (error) {
+    return miscOps.returnError(res, error);
+  }
+
+  miscOps.returnResponse(res, {
+    status : 'ok'
+  });
+
+  return;
+
+  var session = db.client().startSession();
+
+  // Step 3: Use withTransaction to start a transaction, execute the callback,
+  // and commit (or abort on error)
+  // Note: The callback for withTransaction MUST be async and/or return a
+  // Promise.
+  try {
+
+    session.withTransaction(function() {
+
+    });
+    // await session.withTransaction( /*async*/ function() {
+
+    // Important:: You must pass the session to the operations
+    // await coll1.insertOne({ abc: 1 }, { session });
+    // await coll2.insertOne({ xyz: 999 }, { session });
+    // });
+  } catch (error) {
+    miscOps.returnError(res, error);
+  } finally {
+    // await session.endSession();
+
+  }
+
+};
+
+exports.getUserAccountToTransfer = async function(parameters) {
+
+  if (!parameters.session) {
+    throw 'Falha de login.';
+  } else if (!parameters.destination) {
+    throw 'Conta de destino não encontrada.';
+  } else if (!parameters.value) {
+    throw 'Valor inválido.';
+  }
+
+  var userId;
+
+  try {
+    userId = new ObjectID(parameters.id);
+  } catch (error) {
+    throw 'Falha de login.';
+  }
+
+  var user = await users.findOne({
+    _id : userId,
+    session : parameters.session
+  });
+
+  if (!user) {
+    throw 'Falha de login.';
+  } else if (user.retailer) {
+    throw 'Lojistas não podem transferir fundos.';
+  } else if (!user.funds || user.funds < parameters.value) {
+    throw 'Saldo insuficiente.';
+  } else if (parameters.destination === user.identifier) {
+    throw 'Você não pode transferir dinheiro para sí próprio.';
+  }
+
+  return user;
+
+};
+
+// } Section 3: Transfer

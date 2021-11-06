@@ -1,5 +1,7 @@
 'use strict';
 
+// Copied from my other project, LynxChan
+
 var mongo = require('mongodb');
 
 var indexesSet;
@@ -49,6 +51,10 @@ function initUsers(callback) {
   });
 
 }
+
+exports.client = function() {
+  return cachedClient;
+};
 
 exports.users = function() {
 

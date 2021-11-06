@@ -33,4 +33,18 @@ Parameters:
 Response:
     session: a string representing the current user session.
     id: the id the user should use to identify himself in future requests.
+
 ------------------------------------------------------------------------------------------
+
+PAG_ID::03
+
+Verb: POST
+Name: transfer
+
+Description: transfer funds from a user account to another account.
+
+Parameters:
+    id: id of the account performing the transfer.
+    destination: identifier of the account that should receive the funds.
+    value(Number): amount to be transferred.
+    session: session returned when the user logged in.
