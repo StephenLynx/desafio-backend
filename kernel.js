@@ -22,9 +22,10 @@ db.init(function(error) {
   });
 
   app.put('/account', accountOps.createAccount);
+  app.post('/login', accountOps.login);
 
   app.listen(port, function() {
-    console.log('Example app listening at http://localhost:' + port);
+    console.log('Wallets listening at http://localhost:' + port);
   });
 
 });

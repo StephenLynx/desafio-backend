@@ -93,11 +93,6 @@ exports.fetchRequestParameters = function(req, parameters) {
       break;
 
     case 'boolean':
-
-      if (typeof sentParameters[entry.field] !== 'boolean') {
-        continue;
-      }
-
       builtParameters[entry.field] = !!sentParameters[entry.field];
 
       break;

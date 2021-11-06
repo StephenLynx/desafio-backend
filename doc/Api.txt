@@ -18,3 +18,19 @@ Parameters:
     name: full name of the user.
 
 ------------------------------------------------------------------------------------------
+
+PAG_ID::02
+
+Verb: POST
+Name: login
+
+Description: performs a login, creating a new session for the user.
+
+Parameters:
+    login: account e-mail, cpf or cnpj.
+    password: account password.
+
+Response:
+    session: a string representing the current user session.
+    id: the id the user should use to identify himself in future requests.
+------------------------------------------------------------------------------------------
