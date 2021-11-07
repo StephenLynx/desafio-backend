@@ -293,11 +293,11 @@ exports.transfer = function(req, res) {
 exports.getUserAccountToTransfer = function(parameters, callback) {
 
   if (!parameters.session) {
-    callback('Falha de login.');
+    return callback('Falha de login.');
   } else if (!parameters.destination) {
-    callback('Conta de destino não encontrada.');
+    return callback('Conta de destino não encontrada.');
   } else if (!parameters.value || parameters.value < 0) {
-    callback('Valor inválido.');
+    return callback('Valor inválido.');
   }
 
   var userId;
@@ -305,7 +305,7 @@ exports.getUserAccountToTransfer = function(parameters, callback) {
   try {
     userId = new ObjectID(parameters.id);
   } catch (error) {
-    callback('Falha de login.');
+    return callback('Falha de login.');
   }
 
   users.findOne({
@@ -463,7 +463,7 @@ exports.confirmTransaction = function(insertedIds, res) {
     exports.revertTransaction(insertedIds, res, error);
   });
 
-  req.end();
+  req.end(JSON.stringify(insertedIds, null, 2));
 
 };
 
