@@ -125,6 +125,11 @@ exports.fetchRequestParameters = function(req, parameters) {
 
 exports.returnError = function(res, error) {
 
+  if(typeof error !== 'string') {
+    console.trace(error);
+    error = 'Sistema indisponível, tente novamente mais tarde.';
+  }
+
   exports.returnResponse(res, {
     status : 'error',
     error : error
